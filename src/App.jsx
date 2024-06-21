@@ -1,22 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import Toolbar from './components/toolbar'
 import Slider from 'react-input-slider'
 import './App.css'
-import { app, analytics } from './firebase'
 
 import socket from './socket'
 import axios from 'axios'
-// import useCookie from './hooks/useCookie'
 
 function App() {
   const [eraser, setEraser] = useState(false);
   const [paint, setPaint] = useState(false);
+  const [compositionMode, setCompositionMode] = useState('source-over')
   const [coord, setCoord] = useState({x: 0, y: 0});
   const [lineWidth, setLineWidth] = useState(1);
   const [strokeColor, setStrokeColor] = useState("black");
-  const [showJoinPrompt, setShowJoinPrompt] = useState(false);
   const [roomKey, setRoomKey] = useState();
+  const [connectedToRoom, setConnectedToRoom] = useState(false);
   const [socketId, setSocketId] = useState();
 
   const canvas = useRef();
@@ -36,25 +34,30 @@ function App() {
     const ctx = c.getContext('2d');
 
     socket.on('paint-start', (data)=>{
-      console.log(data);
       ctx.moveTo(data.coordinates.x, data.coordinates.y);
       ctx.beginPath();
     });
 
     socket.on('paint-draw', (data)=>{
-      console.log(data);
+      if(data.sessionId == sessionId){
+        return
+      }
       let coord = data.coordinates
-      ctx.lineWidth = lineWidth;
+      ctx.lineWidth = data.pen.lineWidth;
+      let currentCompositionMode = ctx.globalCompositeOperation;
+      if(data.pen.erase){
+        ctx.globalCompositeOperation="destination-out";
+        setStrokeColor('rgb(0,0,0,1)');
+      }
       ctx.lineCap = 'round';
       ctx.strokeStyle = strokeColor
       ctx.lineTo(coord.x - c.offsetLeft, coord.y - c.offsetTop);
       ctx.stroke();
     });
 
-    // socket.on('paint-stop', (data)=>{
-    //   ctx.moveTo(data.coordinates.x, data.coordinates.y);
-    //   ctx.beginPath();
-    // });
+    socket.on('paint-stop', (data)=>{
+      ctx.globalCompositeOperation = compositionMode
+    });
   }, [])
 
   useEffect(() => {
@@ -69,37 +72,39 @@ function App() {
     const ctx = c.getContext('2d');
   }, []);
 
-  useEffect(() => {
-    if(sessionId !== undefined && socketId !== undefined){
-      let req = {
-        sessionId: sessionId,
-        socketId: socket.id
-      }
-      axios.post(`${hostName}/create-room`, JSON.stringify(req), {
-        headers:{
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      })
-      .then((res)=>{
-        // console.log(res.data.roomKey)
-        {
-          setRoomKey(res.data.roomKey);
-          return res.data.roomKey;
-        }
-      })
-      .then((key)=>{
-        socket.emit('connect-to-room', {
-          roomKey: key
-        })
-      })
-      .catch(function (error) {
-        console.log(error);
-      });
+  const createRoom = () => {
+    if(!sessionId && !socket.id){
+      return false;
+    }
+    let req = {
+      sessionId: sessionId,
+      socketId: socket.id
     }
 
-  }, [sessionId, socketId])
+    axios.post(`${hostName}/create-room`, JSON.stringify(req), {
+      headers:{
+        'Content-type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    .then((res)=>{
+      {
+        setRoomKey(res.data.roomKey);
+        setConnectedToRoom(true);
+        return res.data.roomKey;
+      }
+    })
+    .then((key)=>{
+      socket.emit('connect-to-room', {
+        roomKey: key
+      })
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
 
+    return true;
+  }
   
   const joinRoom = () => {
     const roomKey = roomKeyInput.current.value;
@@ -114,6 +119,7 @@ function App() {
         if(res.data.success){
           setIsRoomAdmin(false)
           setRoomKey(res.data.roomKey)
+          setConnectedToRoom(true);
           socket.emit('connect-to-room', {
             roomKey: roomKey
           })
@@ -138,6 +144,7 @@ function App() {
     const ctx = c.getContext('2d');
     ctx.moveTo(coord.x, coord.y);
     ctx.beginPath();
+    ctx.globalCompositeOperation = compositionMode
 
     socket.emit('network-paint-start', {
       coordinates: currentCoord,
@@ -168,26 +175,30 @@ function App() {
     ctx.lineTo(coord.x - e.target.offsetLeft, coord.y - e.target.offsetTop);
     ctx.stroke();
 
-    var canvasDataUrl = c.toDataURL();
-    // console.log(canvasDataUrl)
     socket.emit('network-paint-draw', {
       coordinates: currentCoord,
-      roomKey: roomKey
+      roomKey: roomKey,
+      sessionId: sessionId,
+      pen: {
+        lineWidth: lineWidth,
+        erase: eraser
+      },
     });
   }
 
-  const changeMode = (e) => {
-    if(e.target.value == 'Paint'){
+  const changeMode = (mode) => {
+    if(mode === 'Paint'){
       const c = canvas.current;
       const ctx = c.getContext('2d');
-      ctx.globalCompositeOperation="source-over";
-      setStrokeColor("black"); 
+      setCompositionMode('source-over')
+      setStrokeColor(strokeColor); 
       setLineWidth(lineWidth); 
       setEraser(false)
     }else{
       const c = canvas.current;
       const ctx = c.getContext('2d');
       ctx.globalCompositeOperation="destination-out";
+      setCompositionMode('destination-out')
       setStrokeColor('rgb(0,0,0,1)');
       setLineWidth(lineWidth);
       setEraser(true)
@@ -197,26 +208,29 @@ function App() {
   return (
     <>
       <div id='cursor' className={"custom-cursor z-10 " + (eraser ? '' : 'hidden')} ref={customCursor}></div>
-      <div className="absolute top-0 flex flex-row items-center bg-slate-500 w-full">
-        <input className={"p-3 border-2 " + (eraser ? 'bg-gray-300' : 'bg-green-400')} type="button" value={"Paint"} onClick={changeMode}/>
-        <input className={"p-3 border-2 " + (eraser ? 'bg-green-400' : 'bg-gray-300')} type="button" value={"Erase"} onClick={changeMode}/>
-        <div><Slider className="mx-5" axis="x" xmin={1} xmax={100} x={lineWidth} onChange={(x) => setLineWidth(x.x)}/></div>
-        {showJoinPrompt ? 
-          <div className='px-3 py-1 border-2 space-x-2'>
+      <div className="absolute top-0 flex items-center bg-slate-500 w-full p-3 flex-row-reverse justify-between">
+        {!connectedToRoom ? 
+          <div className='px-3 py-1 space-x-2'>
             <input className='rounded-lg border-2 p-2' type='text' placeholder='enter room key' ref={roomKeyInput}/>
             <input className='p-2 bg-green-200 rounded-lg' type='button' value={"join"} onClick={joinRoom}/>
-            <input className='p-2 bg-green-200 rounded-lg' type='button' value={"cancel"} onClick={() => {
-              setShowJoinPrompt(false)
+            <span>Or</span>
+            <input className='p-2 bg-yellow-200 rounded-lg' type='button' value={"create new Room"} onClick={() => {
+              createRoom()
             }} />
           </div> 
         : 
           <div className='px-3 py-1 border-2 space-x-2'>
-            <input className='rounded-lg border-2 p-2' type='text' placeholder='room-key' value={roomKey} disabled/>
-            <input className='p-2 bg-green-200 rounded-lg' type='button' value={"Join other room"} onClick={() => {
-              setShowJoinPrompt(true)
+            <input className='rounded-lg border-2 p-2' type='text' placeholder='room-key' value={roomKey} ref={roomKeyInput} disabled/>
+            <input className='p-2 bg-green-200 rounded-lg' type='button' value={"Leave Room"} onClick={() => {
+              setConnectedToRoom(false);
+              setRoomKey("");
+              roomKeyInput.current.value = null;
             }} />
           </div>
         }
+        <div>
+          <span className={"text-3xl px-5 font-semibold text-white"}>Sketch</span>
+        </div>
       </div>
       <canvas 
         className={"border-2 " + (eraser ? 'cursor-none':'cursor-[url(pencil.cur),_pointer]')}
@@ -227,6 +241,12 @@ function App() {
         onMouseUp={stopPaint} 
         onMouseMove={sketch}>
       </canvas>
+
+      <Toolbar 
+        setPenSize = {setLineWidth}
+        changeMode = {changeMode}
+        setPenColor = {setStrokeColor}
+      />
     </>
   )
 }
