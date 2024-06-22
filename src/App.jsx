@@ -207,7 +207,7 @@ function App() {
 
   return (
     <>
-      <div id='cursor' className={"custom-cursor z-10 " + (eraser ? '' : 'hidden')} ref={customCursor}></div>
+      <div id='cursor' className={"custom-cursor z-10"} ref={customCursor}></div>
       <div className="absolute top-0 flex items-center bg-slate-500 w-full p-3 flex-row-reverse justify-between">
         {!connectedToRoom ? 
           <div className='px-3 py-1 space-x-2'>
@@ -233,7 +233,7 @@ function App() {
         </div>
       </div>
       <canvas 
-        className={"border-2 " + (eraser ? 'cursor-none':'cursor-[url(pencil.cur),_pointer]')}
+        className={"border-2"}
         width={window.innerWidth}
         height={window.innerHeight}
         ref={canvas} 
