@@ -81,7 +81,7 @@ function App() {
       socketId: socket.id
     }
 
-    axios.post(`${hostName}/create-room`, JSON.stringify(req), {
+    axios.post(`http://${hostName}/create-room`, JSON.stringify(req), {
       headers:{
         'Content-type': 'application/json',
         'Accept': 'application/json'
@@ -114,7 +114,7 @@ function App() {
       sessionId: sessionId,
       socketId: socket.id
     }
-    axios.post(`${hostName}/join-room/${roomKey}`, req)
+    axios.post(`http://${hostName}/join-room/${roomKey}`, req)
       .then((res)=>{
         if(res.data.success){
           setIsRoomAdmin(false)

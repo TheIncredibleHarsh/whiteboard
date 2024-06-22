@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const URL = 'http://localhost:4000';
+const URL = "http://" + import.meta.env.VITE_HOSTNAME;
 const socket = io(URL, {
     transports: ['websocket', 'polling', 'flashsocket']
 });
