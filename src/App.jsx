@@ -233,7 +233,7 @@ function App() {
         </div>
       </div>
       <canvas 
-        className={"border-2"}
+        className={"border-2 cursor-none"}
         width={window.innerWidth}
         height={window.innerHeight}
         ref={canvas} 
