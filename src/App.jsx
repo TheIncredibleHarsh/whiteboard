@@ -24,6 +24,7 @@ function App() {
   const [sessionId, setSessionId] = useState();
   const [isRoomAdmin, setIsRoomAdmin] = useState(true);
   const hostName = import.meta.env.VITE_HOST_NAME;
+  console.log(`hostname: ${hostName}`)
 
   socket.on("connect", ()=>{
     setSocketId(socket.id);
@@ -73,6 +74,7 @@ function App() {
   }, []);
 
   const createRoom = () => {
+    console.log(`hostname: ${hostName}`)
     if(!sessionId && !socket.id){
       return false;
     }
