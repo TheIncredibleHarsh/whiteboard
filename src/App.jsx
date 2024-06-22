@@ -23,7 +23,7 @@ function App() {
 
   const [sessionId, setSessionId] = useState();
   const [isRoomAdmin, setIsRoomAdmin] = useState(true);
-  const hostName = 'http://localhost:4000';
+  const hostName = import.meta.env.VITE_HOST_NAME;
 
   socket.on("connect", ()=>{
     setSocketId(socket.id);
