@@ -39,18 +39,14 @@ function App() {
     });
 
     socket.on('paint-draw', (data)=>{
-      if(data.sessionId == sessionId){
-        return
-      }
       let coord = data.coordinates
       ctx.lineWidth = data.pen.lineWidth;
-      let currentCompositionMode = ctx.globalCompositeOperation;
       if(data.pen.erase){
         ctx.globalCompositeOperation="destination-out";
         setStrokeColor('rgb(0,0,0,1)');
       }
       ctx.lineCap = 'round';
-      ctx.strokeStyle = strokeColor
+      ctx.strokeStyle = data.pen.color
       ctx.lineTo(coord.x - c.offsetLeft, coord.y - c.offsetTop);
       ctx.stroke();
     });
@@ -181,7 +177,8 @@ function App() {
       sessionId: sessionId,
       pen: {
         lineWidth: lineWidth,
-        erase: eraser
+        erase: eraser,
+        color: strokeColor
       },
     });
   }
@@ -229,7 +226,7 @@ function App() {
           </div>
         }
         <div>
-          <span className={"text-3xl px-5 font-semibold text-white"}>Sketch</span>
+          <span className={"text-3xl px-5 fontf-semibold text-white"}>Sketch</span>
         </div>
       </div>
       <canvas 

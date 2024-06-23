@@ -57,7 +57,7 @@ function Toolbar({setPenSize, changeMode, setPenColor}){
                 </div>
                 <div onMouseOver={() => setMouseOnColorTool(true)} onMouseOut={() => setMouseOnColorTool(false)} ><IconInnerShadowTopRight size={32} />
                     {
-                        (mouseOnColorTool || mouseOnColorPanel) ? <ColorPickerPopUp colorMap={colorMap} setMouseOnEraserPanel={setMouseOnColorPanel} changePenColor={changePenColor}/> : ""
+                        (mouseOnColorTool || mouseOnColorPanel) ? <ColorPickerPopUp colorMap={colorMap} setMouseOnColorPanel={setMouseOnColorPanel} changePenColor={changePenColor}/> : ""
                     }
                 </div>
             </div>
