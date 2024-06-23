@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { TailSpin } from 'react-loader-spinner'
 import Toolbar from './components/toolbar'
 import Slider from 'react-input-slider'
 import './App.css'
@@ -16,6 +17,7 @@ function App() {
   const [roomKey, setRoomKey] = useState();
   const [connectedToRoom, setConnectedToRoom] = useState(false);
   const [socketId, setSocketId] = useState();
+  const [isLoading, setIsLoading] = useState(false);
 
   const canvas = useRef();
   const customCursor = useRef();
@@ -76,7 +78,7 @@ function App() {
       sessionId: sessionId,
       socketId: socket.id
     }
-
+    setIsLoading(true)
     axios.post(`${hostName}/create-room`, JSON.stringify(req), {
       headers:{
         'Content-type': 'application/json',
@@ -98,7 +100,7 @@ function App() {
     .catch(function (error) {
       console.log(error);
     });
-
+    setIsLoading(false)
     return true;
   }
   
@@ -110,6 +112,7 @@ function App() {
       sessionId: sessionId,
       socketId: socket.id
     }
+    setIsLoading(true)
     axios.post(`${hostName}/join-room/${roomKey}`, req)
       .then((res)=>{
         if(res.data.success){
@@ -123,6 +126,7 @@ function App() {
       }).catch(function (error) {
         console.log(error);
       });
+    setIsLoading(false)
   }
 
 
@@ -204,12 +208,18 @@ function App() {
 
   return (
     <>
+      {
+        isLoading ?
+          <Loader />
+        :
+          <></>
+      }
       <div id='cursor' className={"custom-cursor z-10"} ref={customCursor}></div>
       <div className="absolute top-0 flex items-center bg-slate-500 w-full p-3 flex-row-reverse justify-between">
         {!connectedToRoom ? 
           <div className='px-3 py-1 space-x-2'>
             <input className='rounded-lg border-2 p-2' type='text' placeholder='enter room key' ref={roomKeyInput}/>
-            <input className='p-2 bg-green-200 rounded-lg' type='button' value={"join"} onClick={joinRoom}/>
+            <input className='p-2 bg-green-200 rounded-lg' type='button' value={"join"} onClick={() => {joinRoom()}}/>
             <span>Or</span>
             <input className='p-2 bg-yellow-200 rounded-lg' type='button' value={"create new Room"} onClick={() => {
               createRoom()
@@ -245,6 +255,23 @@ function App() {
         setPenColor = {setStrokeColor}
       />
     </>
+  )
+}
+
+function Loader(){
+  return (
+    <div className='w-full h-full fixed top-0 left-0 z-50 backdrop-blur-sm flex items-center justify-center'>
+          <TailSpin
+            visible={true}
+            height="80"
+            width="80"
+            color="#4fa94d"
+            ariaLabel="tail-spin-loading"
+            radius="1"
+            wrapperStyle={{}}
+            wrapperClass=""
+          />
+        </div>
   )
 }
 
