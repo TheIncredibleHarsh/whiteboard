@@ -89,6 +89,7 @@ function App() {
       {
         setRoomKey(res.data.roomKey);
         setConnectedToRoom(true);
+        setIsLoading(false)
         return res.data.roomKey;
       }
     })
@@ -98,9 +99,9 @@ function App() {
       })
     })
     .catch(function (error) {
+      setIsLoading(false)
       console.log(error);
     });
-    setIsLoading(false)
     return true;
   }
   
@@ -123,10 +124,11 @@ function App() {
             roomKey: roomKey
           })
         }
+        setIsLoading(false);
       }).catch(function (error) {
+        setIsLoading(false);
         console.log(error);
       });
-    setIsLoading(false)
   }
 
 
@@ -208,12 +210,7 @@ function App() {
 
   return (
     <>
-      {
-        isLoading ?
-          <Loader />
-        :
-          <></>
-      }
+      {isLoading && <Loader />}
       <div id='cursor' className={"custom-cursor z-10"} ref={customCursor}></div>
       <div className="absolute top-0 flex items-center bg-slate-500 w-full p-3 flex-row-reverse justify-between">
         {!connectedToRoom ? 
